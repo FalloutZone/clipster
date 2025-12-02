@@ -138,17 +138,14 @@ fn setup_ais() -> Result<Vec<AIConfig>, Box<dyn std::error::Error>> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Setup AIs
     let ai_configs = setup_ais()?;
 
-    // Your existing setup
     let recorder = Arc::new(tokio::sync::Mutex::new(AudioRecorder::new()?));
     let whisper = Arc::new(Mutex::new(
         WhisperModel::new("models/ggml-tiny.en.bin")?
     ));
     let clipboard = Arc::new(Mutex::new(Clipboard::new()?));
 
-    // Setup hotkeys
     let hotkey_manager = GlobalHotKeyManager::new()?;
     let mut hotkey_map: HashMap<u32, AIConfig> = HashMap::new();
 
@@ -190,7 +187,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if let Some((provider, ai)) = active_recording.take() {
                             println!("Processing with {}...", provider.name());
 
-                            // Your existing audio processing
                             let samples = recorder.lock().await.stop_recording()?;
                             let sample_rate = recorder.lock().await.get_sample_rate();
 
@@ -211,14 +207,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                                 clipboard.lock().await.set_text(&response)?;
                                                 println!("Copied to clipboard via {}!", provider.name());
 
-                                                // Optional: show notification
                                                 #[cfg(not(target_os = "windows"))]
                                                 let _ = notify_rust::Notification::new()
                                                     .summary(&format!("AI Assistant ({})", provider.name()))
                                                     .body("Response copied! Ready to paste.")
                                                     .show();
 
-                                                // Print preview
                                                 let preview = if response.len() > 100 {
                                                     format!("{}...", &response[..100])
                                                 } else {
@@ -257,7 +251,6 @@ async fn get_ai_response(
 
     let response = ai.chat(messages).await?;
 
-    // Clean up the response
     let cleaned = clean_response(&response);
 
     Ok(cleaned)

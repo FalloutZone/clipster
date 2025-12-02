@@ -140,7 +140,7 @@ fn setup_ais() -> Result<Vec<AIConfig>, Box<dyn std::error::Error>> {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ai_configs = setup_ais()?;
 
-    let recorder = Arc::new(tokio::sync::Mutex::new(AudioRecorder::new()?));
+    let recorder = Arc::new(Mutex::new(AudioRecorder::new()?));
     let whisper = Arc::new(Mutex::new(
         WhisperModel::new("models/ggml-tiny.en.bin")?
     ));

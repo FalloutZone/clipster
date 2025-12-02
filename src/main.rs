@@ -24,9 +24,30 @@ const BANNER: &'static str = "\
 ▙▖▐▖▌▙▌▄▌▐▖▙▖▌
      ▌         ";
 
-const SYSTEM_PROMPT: &str = "You are a code assistant. Return ONLY the requested code, \
-command, or snippet with NO explanations or markdown fences unless specifically needed. \
-Be concise and immediately usable.";
+const SYSTEM_PROMPT: &str = "\
+You are a code assistant.
+ONLY respond with the requested code, command, or snippet.
+NO explanations.
+NO markdown (unless it was specifically asked for).
+NO unnecessary quotes around response.
+BE CONCISE and immediately usable.
+
+Correct example:
+User: \"Regex for email\"
+Response: \"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}\"
+
+Incorrect example:
+User: \"Regex for email\"\
+Response: \"```text
+`^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$
+```
+
+Or more comprehensive:
+
+```text
+^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?: ...\"
+```
+";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum AIProvider {

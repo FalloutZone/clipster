@@ -13,6 +13,7 @@ pub struct Message {
 pub trait AI: Send + Sync + Debug {
     async fn chat(&self, messages: Vec<Message>) -> Result<String, Box<dyn Error>>;
 
+    #[allow(dead_code)]
     async fn generate(&self, prompt: &str) -> Result<String, Box<dyn Error>> {
         let messages = vec![Message {
             role: "user".to_string(),

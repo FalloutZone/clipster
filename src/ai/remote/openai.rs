@@ -1,7 +1,8 @@
-use crate::ai_trait::{AI, Message};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+
+use crate::ai::remote::traits::{AI, Message};
 
 #[derive(Debug, Clone)]
 pub struct OpenAI {
@@ -11,13 +12,17 @@ pub struct OpenAI {
     model: String,
     max_tokens: u32,
     temperature: f32,
+    uses_completion_tokens: bool,
 }
 
 #[derive(Debug, Serialize)]
 struct ChatRequest {
     model: String,
     messages: Vec<Message>,
-    max_tokens: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_completion_tokens: Option<u32>,
     temperature: f32,
 }
 
@@ -32,7 +37,7 @@ struct Choice {
 }
 
 impl OpenAI {
-    pub fn new(api_key: String, base_url: &str, model: &str) -> Self {
+    pub fn new(api_key: String, base_url: &str, model: &str, uses_completion_tokens: bool) -> Self {
         Self {
             client: reqwest::Client::new(),
             api_key,
@@ -40,26 +45,18 @@ impl OpenAI {
             model: model.to_string(),
             max_tokens: 1000,
             temperature: 0.7,
+            uses_completion_tokens
         }
     }
 
-    pub fn openai() -> Result<Self, Box<dyn Error>> {
+    pub fn openai_5() -> Result<Self, Box<dyn Error>> {
         let api_key = std::env::var("OPENAI_API_KEY")?;
-        Ok(Self::new(api_key, "https://api.openai.com/v1", "gpt-4o-mini"))
+        Ok(Self::new(api_key, "https://api.openai.com/v1", "gpt-5.1", true))
     }
 
     pub fn grok() -> Result<Self, Box<dyn Error>> {
         let api_key = std::env::var("XAI_API_KEY")?;
-        Ok(Self::new(api_key, "https://api.x.ai/v1", "grok-beta"))
-    }
-
-    pub fn anthropic_openrouter() -> Result<Self, Box<dyn Error>> {
-        let api_key = std::env::var("OPENROUTER_API_KEY")?;
-        Ok(Self::new(
-            api_key,
-            "https://openrouter.ai/api/v1",
-            "anthropic/claude-3.5-sonnet",
-        ))
+        Ok(Self::new(api_key, "https://api.x.ai/v1", "grok-4-latest", false))
     }
 
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
@@ -72,11 +69,13 @@ impl OpenAI {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_model(mut self, model: &str) -> Self {
         self.model = model.to_string();
         self
     }
 
+    #[allow(dead_code)]
     pub async fn generate(&self, prompt: &str) -> Result<String, Box<dyn Error>> {
         let messages = vec![Message {
             role: "user".to_string(),
@@ -89,7 +88,8 @@ impl OpenAI {
         let request = ChatRequest {
             model: self.model.clone(),
             messages,
-            max_tokens: self.max_tokens,
+            max_tokens: if self.uses_completion_tokens { None } else { Some(self.max_tokens) },
+            max_completion_tokens: if self.uses_completion_tokens { Some(self.max_tokens) } else { None },
             temperature: self.temperature,
         };
 
@@ -117,6 +117,7 @@ impl OpenAI {
             .ok_or_else(|| "No response from API".into())
     }
 
+    #[allow(dead_code)]
     pub async fn generate_with_system(
         &self,
         system_prompt: &str,

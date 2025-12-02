@@ -1,7 +1,8 @@
-use crate::ai_trait::{AI, Message};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+
+use crate::ai::remote::traits::{AI, Message};
 
 #[derive(Debug, Clone)]
 pub struct AnthropicAI {
@@ -64,6 +65,7 @@ impl AnthropicAI {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_model(mut self, model: &str) -> Self {
         self.model = model.to_string();
         self
@@ -111,7 +113,6 @@ impl AnthropicAI {
 #[async_trait]
 impl AI for AnthropicAI {
     async fn chat(&self, messages: Vec<Message>) -> Result<String, Box<dyn Error>> {
-        // Separate system message from other messages
         let mut system_content: Option<String> = None;
         let mut anthropic_messages = Vec::new();
 

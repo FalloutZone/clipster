@@ -42,3 +42,68 @@ pub fn normalize_audio(samples: &[f32]) -> Vec<f32> {
         samples.to_vec()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_audio_scales_to_one() {
+        let samples = vec![0.5, -0.8, 0.3, -0.4];
+        let normalized = normalize_audio(&samples);
+
+        let max_amplitude = normalized.iter().map(|&s| s.abs()).fold(0.0f32, f32::max);
+        assert!((max_amplitude - 1.0).abs() < 1e-6, "Max amplitude should be 1.0");
+    }
+
+    #[test]
+    fn test_normalize_audio_preserves_ratios() {
+        let samples = vec![0.2, 0.4, 0.6, 0.8];
+        let normalized = normalize_audio(&samples);
+
+        // Ratios should be preserved
+        assert!((normalized[0] / normalized[1] - 0.5).abs() < 1e-6);
+        assert!((normalized[1] / normalized[2] - 2.0/3.0).abs() < 1e-6);
+        assert!((normalized[2] / normalized[3] - 0.75).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_normalize_audio_handles_empty() {
+        let samples: Vec<f32> = vec![];
+        let normalized = normalize_audio(&samples);
+        assert_eq!(normalized.len(), 0);
+    }
+
+    #[test]
+    fn test_normalize_audio_handles_zeros() {
+        let samples = vec![0.0, 0.0, 0.0];
+        let normalized = normalize_audio(&samples);
+        assert_eq!(normalized, vec![0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn test_normalize_audio_handles_negative_values() {
+        let samples = vec![-0.5, -1.0, -0.25];
+        let normalized = normalize_audio(&samples);
+
+        let max_amplitude = normalized.iter().map(|&s| s.abs()).fold(0.0f32, f32::max);
+        assert!((max_amplitude - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_resample_to_16khz_no_change_when_already_16khz() {
+        let samples = vec![0.1, 0.2, 0.3, 0.4];
+        let result = resample_to_16khz(&samples, 16000).unwrap();
+        assert_eq!(result, samples);
+    }
+
+    #[test]
+    fn test_resample_to_16khz_changes_sample_count() {
+        let samples = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+        let result = resample_to_16khz(&samples, 48000).unwrap();
+
+        // When downsampling from 48kHz to 16kHz (3:1 ratio), should have ~1/3 samples
+        // Allow some margin due to resampling algorithm
+        assert!(result.len() < samples.len());
+    }
+}

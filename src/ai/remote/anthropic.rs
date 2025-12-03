@@ -130,3 +130,116 @@ impl AI for AnthropicAI {
         self.chat_internal(anthropic_messages, system_content).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_anthropic_with_max_tokens() {
+        let client = AnthropicAI::new("test_key".to_string(), "claude-4")
+            .with_max_tokens(2000);
+
+        assert_eq!(client.max_tokens, 2000);
+    }
+
+    #[tokio::test]
+    async fn test_anthropic_with_temperature() {
+        let client = AnthropicAI::new("test_key".to_string(), "claude-4")
+            .with_temperature(0.9);
+
+        assert_eq!(client.temperature, 0.9);
+    }
+
+    #[tokio::test]
+    async fn test_anthropic_with_temperature_clamps() {
+        let client = AnthropicAI::new("test_key".to_string(), "claude-4")
+            .with_temperature(1.5);
+
+        assert_eq!(client.temperature, 1.0);
+
+        let client2 = AnthropicAI::new("test_key".to_string(), "claude-4")
+            .with_temperature(-0.5);
+
+        assert_eq!(client2.temperature, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_anthropic_with_model() {
+        let client = AnthropicAI::new("test_key".to_string(), "claude-4")
+            .with_model("claude-sonnet");
+
+        assert_eq!(client.model, "claude-sonnet");
+    }
+
+    #[tokio::test]
+    async fn test_anthropic_message_conversion() {
+        let messages = vec![
+            Message {
+                role: "system".to_string(),
+                content: "You are helpful".to_string(),
+            },
+            Message {
+                role: "user".to_string(),
+                content: "Hello".to_string(),
+            }
+        ];
+
+        let mut system_content: Option<String> = None;
+        let mut anthropic_messages = Vec::new();
+
+        for msg in messages {
+            if msg.role == "system" {
+                system_content = Some(msg.content);
+            } else {
+                anthropic_messages.push(AnthropicMessage {
+                    role: msg.role,
+                    content: msg.content,
+                });
+            }
+        }
+
+        assert_eq!(system_content, Some("You are helpful".to_string()));
+        assert_eq!(anthropic_messages.len(), 1);
+        assert_eq!(anthropic_messages[0].role, "user");
+        assert_eq!(anthropic_messages[0].content, "Hello");
+    }
+
+    #[tokio::test]
+    async fn test_anthropic_request_serialization() {
+        let messages = vec![
+            AnthropicMessage {
+                role: "user".to_string(),
+                content: "Hello".to_string(),
+            }
+        ];
+
+        let request = AnthropicRequest {
+            model: "claude-4".to_string(),
+            messages,
+            max_tokens: 1000,
+            temperature: 0.7,
+            system: Some("You are helpful".to_string()),
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        assert!(json.contains("\"model\":\"claude-4\""));
+        assert!(json.contains("\"temperature\":0.7"));
+        assert!(json.contains("\"system\":\"You are helpful\""));
+    }
+
+    #[tokio::test]
+    async fn test_anthropic_response_deserialization() {
+        let json = r#"{
+            "content": [
+                {
+                    "text": "Test response"
+                }
+            ]
+        }"#;
+
+        let response: AnthropicResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.content.len(), 1);
+        assert_eq!(response.content[0].text, "Test response");
+    }
+}

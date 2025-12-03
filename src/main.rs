@@ -149,7 +149,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hotkey_manager = GlobalHotKeyManager::new()?;
     let mut hotkey_map: HashMap<u32, AIConfig> = HashMap::new();
 
-    println!("{}", BANNER.to_string());
+    println!("{BANNER}");
     println!("Clipster AI Assistant Ready!\n");
     println!("Available AI providers:");
 
@@ -269,4 +269,58 @@ fn clean_response(response: &str) -> String {
     cleaned = cleaned.trim_end_matches("```").trim();
 
     cleaned.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_clean_response_removes_code_fences() {
+        let response = "```rust\nfn main() {}\n```";
+        let cleaned = clean_response(response);
+        assert_eq!(cleaned, "fn main() {}");
+    }
+
+    #[test]
+    fn test_clean_response_removes_code_fences_with_language() {
+        let response = "```python\nprint('hello')\n```";
+        let cleaned = clean_response(response);
+        assert_eq!(cleaned, "print('hello')");
+    }
+
+    #[test]
+    fn test_clean_response_handles_no_code_fences() {
+        let response = "Just plain text";
+        let cleaned = clean_response(response);
+        assert_eq!(cleaned, "Just plain text");
+    }
+
+    #[test]
+    fn test_clean_response_trims_whitespace() {
+        let response = "   some text   ";
+        let cleaned = clean_response(response);
+        assert_eq!(cleaned, "some text");
+    }
+
+    #[test]
+    fn test_clean_response_handles_empty_string() {
+        let response = "";
+        let cleaned = clean_response(response);
+        assert_eq!(cleaned, "");
+    }
+
+    #[test]
+    fn test_clean_response_handles_only_code_fences() {
+        let response = "```\ncode here\n```";
+        let cleaned = clean_response(response);
+        assert_eq!(cleaned, "code here");
+    }
+
+    #[test]
+    fn test_clean_response_handles_multiline_code() {
+        let response = "```javascript\nconst x = 1;\nconst y = 2;\nconsole.log(x + y);\n```";
+        let cleaned = clean_response(response);
+        assert_eq!(cleaned, "const x = 1;\nconst y = 2;\nconsole.log(x + y);");
+    }
 }
